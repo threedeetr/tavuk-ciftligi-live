@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: tavuk-ciftligi-live
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: TIKTOK_USERNAME
+        sync: false
+      - key: CHICKEN_GIFTS
+        value: Rose
+      - key: FOX_GIFTS
+        value: Fox
+      - key: EGG_GIFTS
+        value: Heart Me
+      - key: BIG_GIFT_MIN
+        value: 1000

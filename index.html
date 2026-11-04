@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#edf5e7">
+<title>Çiftlik Live — Demo</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #314333;
+    --muted: #71816d;
+    --cream: #fffdf5;
+    --green: #4d8a50;
+    --green-dark: #356c3b;
+    --line: #dce8d5;
+    --shadow: 0 12px 34px rgba(47, 75, 44, .13);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #eaf2e4; font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+  body { display: flex; align-items: center; justify-content: center; }
+  button, input { font: inherit; }
+  .app {
+    width: min(100vw, 480px); height: 100vh; height: 100dvh; min-height: 520px;
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+    background: #f4f8ef; box-shadow: var(--shadow);
+  }
+  .topbar {
+    flex: 0 0 62px; display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 15px; background: rgba(255,253,245,.96); border-bottom: 1px solid #e4eadc; z-index: 3;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-mark { width: 39px; height: 39px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(145deg,#ffe9a7,#ffd36d); box-shadow: inset 0 -3px 0 rgba(183,126,38,.12); font-size: 23px; }
+  .brand-name { font-size: 15px; line-height: 1.05; font-weight: 900; letter-spacing: .3px; }
+  .brand-sub { font-size: 9px; letter-spacing: 1.25px; font-weight: 800; color: #85917c; margin-top: 4px; }
+  .demo-chip { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; background: #edf5e8; color: #477548; font-size: 10px; font-weight: 900; letter-spacing: .65px; border: 1px solid #d8e9d0; }
+  .demo-dot { width: 7px; height: 7px; border-radius: 50%; background: #70b75e; box-shadow: 0 0 0 3px rgba(112,183,94,.14); }
+  .scene-wrap { min-height: 0; flex: 1 1 auto; position: relative; overflow: hidden; background: #a8d98c; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+  .hud { position: absolute; left: 12px; right: 12px; top: 11px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; gap: 8px; }
+  .stat-group { display: flex; gap: 6px; }
+  .stat { display: flex; align-items: center; gap: 5px; padding: 7px 9px; background: rgba(255,253,245,.91); border: 1px solid rgba(255,255,255,.8); border-radius: 12px; box-shadow: 0 4px 12px rgba(48,79,38,.10); font-size: 11px; font-weight: 900; color: #425b3f; white-space: nowrap; }
+  .stat .emoji { font-size: 14px; }
+  .owner-pill { max-width: 48%; padding: 8px 10px; background: rgba(53,91,52,.88); color: white; border: 1px solid rgba(255,255,255,.25); border-radius: 12px; box-shadow: 0 4px 12px rgba(48,79,38,.13); font-size: 10px; line-height: 1.25; text-align: right; overflow: hidden; }
+  .owner-pill strong { display: block; font-size: 9px; color: #d8efc8; letter-spacing: .7px; margin-bottom: 2px; }
+  .owner-pill span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900; }
+  .toast {
+    position: absolute; left: 50%; top: 64px; transform: translate(-50%,-8px); width: max-content; max-width: calc(100% - 30px);
+    padding: 10px 14px; border-radius: 14px; color: white; background: rgba(48,76,48,.94);
+    box-shadow: 0 8px 22px rgba(37,59,35,.22); font-size: 12px; line-height: 1.35; font-weight: 800; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .22s ease, transform .22s ease; z-index: 2;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%,0); }
+  .control-panel {
+    flex: 0 0 auto; padding: 10px 14px calc(11px + env(safe-area-inset-bottom)); background: var(--cream);
+    border-top: 1px solid #e5eadf; box-shadow: 0 -7px 24px rgba(54,78,46,.08); z-index: 4;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+  .panel-title { font-size: 11px; font-weight: 950; letter-spacing: 1px; color: #4d674b; }
+  .panel-hint { font-size: 9px; color: #94a08c; font-weight: 700; }
+  .fields { display: grid; grid-template-columns: minmax(0,1fr) 104px; gap: 8px; margin-bottom: 9px; }
+  .field { min-width: 0; }
+  .field label { display: block; margin: 0 0 4px 2px; font-size: 9px; color: #82907c; font-weight: 800; letter-spacing: .45px; }
+  .field input { width: 100%; height: 38px; border: 1px solid #dfe8d8; border-radius: 11px; background: #f7faf3; padding: 0 11px; outline: none; color: #354a36; font-size: 12px; font-weight: 700; min-width: 0; }
+  .field input:focus { border-color: #87b77a; box-shadow: 0 0 0 3px rgba(112,168,93,.13); }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .action {
+    height: 43px; border: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-size: 11px; font-weight: 900; letter-spacing: .05px; cursor: pointer; user-select: none; touch-action: manipulation;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.09); transition: transform .08s ease, filter .12s ease;
+  }
+  .action:active { transform: translateY(2px); box-shadow: inset 0 -1px 0 rgba(0,0,0,.08); filter: brightness(.97); }
+  .action .ico { font-size: 17px; line-height: 1; }
+  .chicken-btn { background: #ffe6a0; color: #76551d; }
+  .fox-btn { background: #ffd6c2; color: #89482e; }
+  .big-btn { background: #d8e9ff; color: #385b86; }
+  .egg-btn { background: #e3efd7; color: #426b3c; }
+  .reset-btn { background: #eef0ed; color: #687267; }
+  .wide { grid-column: 1 / -1; }
+  .footnote { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; color: #8a9684; font-size: 9px; line-height: 1.35; }
+  .footnote b { color: #687d62; }
+  @media (max-height: 700px) {
+    .topbar { flex-basis: 54px; padding-top: 6px; padding-bottom: 6px; }
+    .brand-mark { width: 34px; height: 34px; font-size: 20px; }
+    .control-panel { padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+    .panel-head { margin-bottom: 6px; }
+    .field input { height: 34px; }
+    .action { height: 38px; }
+    .footnote { margin-top: 5px; }
+  }
+  @media (max-width: 350px) {
+    .control-panel { padding-left: 10px; padding-right: 10px; }
+    .action { font-size: 10px; gap: 5px; }
+    .stat { padding: 6px 7px; font-size: 10px; }
+  }
+  @media (min-width: 481px) {
+    .app { height: min(100dvh, 900px); border-radius: 22px; }
+    body { padding: 12px 0; }
+  }
+</style>
+</head>
+<body>
+<main class="app" aria-label="Çiftlik Live demo oyunu">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">🐔</div>
+      <div><div class="brand-name">ÇİFTLİK LIVE</div><div class="brand-sub">KÜÇÜK BİR ÇİFTLİK, BÜYÜK EĞLENCE</div></div>
+    </div>
+    <div class="demo-chip"><span class="demo-dot"></span> DEMO MODU</div>
+  </header>
+
+  <section class="scene-wrap" aria-label="Tavuk çiftliği oyun alanı">
+    <canvas id="farmCanvas" aria-label="Çitlerle çevrili, tavukların dolaştığı çiftlik sahnesi"></canvas>
+    <div class="hud">
+      <div class="stat-group">
+        <div class="stat"><span class="emoji">🐔</span><span id="chickenCount">3</span></div>
+        <div class="stat"><span class="emoji">🥚</span><span id="eggCount">1</span></div>
+      </div>
+      <div class="owner-pill"><strong>ÇİFTLİK SAHİBİ</strong><span id="ownerName">Henüz lider yok</span></div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="control-panel" aria-label="Demo kontrol paneli">
+    <div class="panel-head"><div class="panel-title">HEDİYE KONTROL PANELİ</div><div class="panel-hint">Dokun ve test et ✨</div></div>
+    <div class="fields">
+      <div class="field"><label for="username">İZLEYİCİ KULLANICI ADI</label><input id="username" type="text" value="misafir_01" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="kullanici_adi"></div>
+      <div class="field"><label for="giftValue">HEDİYE PUANI 💎</label><input id="giftValue" type="number" inputmode="numeric" min="1" max="100000000" value="100"></div>
+    </div>
+    <div class="buttons">
+      <button class="action chicken-btn" id="chickenBtn" type="button"><span class="ico">🐣</span> Tavuk Gönder</button>
+      <button class="action fox-btn" id="foxBtn" type="button"><span class="ico">🦊</span> Tilki Gönder</button>
+      <button class="action big-btn wide" id="bigBtn" type="button"><span class="ico">👑</span> Büyük Hediye Gönder</button>
+      <button class="action egg-btn" id="eggBtn" type="button"><span class="ico">🥚</span> Yumurta Oluştur</button>
+      <button class="action reset-btn" id="resetBtn" type="button"><span class="ico">↻</span> Sıfırla</button>
+    </div>
+    <div class="footnote"><span>ⓘ</span><span><b>Demo modu:</b> TikTok LIVE bağlantısı henüz yok. Bu panel, ileride bağlanacak hediye fonksiyonlarını test eder.</span></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ------------------------------------------------------------
+  // ÇİFTLİK DURUMU — TikTok entegrasyonundan bağımsız oyun katmanı
+  // ------------------------------------------------------------
+  const MAX_CHICKENS = 60;       // Uzun yayınlarda çizim maliyetini sınırlı tutar.
+  const MAX_VISIBLE_EGGS = 28;
+  const canvas = document.getElementById('farmCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const $ = (id) => document.getElementById(id);
+  const ui = {
+    chickenCount: $('chickenCount'), eggCount: $('eggCount'), ownerName: $('ownerName'),
+    toast: $('toast'), username: $('username'), giftValue: $('giftValue')
+  };
+
+  const state = {
+    chickens: [], eggs: [], owner: null, bestGiftValue: 0,
+    fox: null, pendingFoxes: 0, toastTimer: 0, lastFrame: 0,
+    width: 420, height: 600, dpr: 1, elapsed: 0,
+    farmer: { x: 74, y: 530, tx: 105, ty: 526, pause: 1.4, phase: 0 }
+  };
+
+  const rand = (min, max) => min + Math.random() * (max - min);
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const cleanUsername = (value) => {
+    const name = String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '_').slice(0, 24);
+    return name || 'isimsiz_izleyici';
+  };
+  const displayName = (name) => '@' + cleanUsername(name);
+
+  function showToast(message) {
+    ui.toast.textContent = message;
+    ui.toast.classList.add('show');
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 3400);
+  }
+
+  function updateHud() {
+    ui.chickenCount.textContent = String(state.chickens.length);
+    ui.eggCount.textContent = String(state.eggs.length);
+    ui.ownerName.textContent = state.owner ? displayName(state.owner) : 'Henüz lider yok';
+  }
+
+  function randomChickenPoint() {
+    return { x: rand(126, 324), y: rand(300, 414) };
+  }
+
+  function addChicken(username, quiet = false) {
+    const point = randomChickenPoint();
+    const chicken = {
+      id: (window.crypto && typeof window.crypto.randomUUID === 'function') ? window.crypto.randomUUID() : 'ch-' + Date.now() + '-' + Math.random().toString(16).slice(2),
+      username: cleanUsername(username), x: point.x, y: point.y,
+      tx: rand(120, 330), ty: rand(294, 420), speed: rand(13, 23),
+      angle: rand(-.4, .4), pause: rand(.2, 1.8), bob: rand(0, Math.PI * 2),
+      targetKind: 'wander', nextEgg: rand(22, 42), eating: 0
+    };
+    if (state.chickens.length >= MAX_CHICKENS) {
+      // Eski tavukları sessizce sıradan çıkar; oyun hafızası ve çizim yükü sabit kalır.
+      state.chickens.shift();
+    }
+    state.chickens.push(chicken);
+    updateHud();
+    if (!quiet) showToast(displayName(chicken.username) + ' çiftliğe bir tavuk gönderdi! 🐔');
+    return chicken;
+  }
+
+  function addEgg(username, quiet = false) {
+    const point = randomChickenPoint();
+    state.eggs.push({ x: point.x + rand(-10, 10), y: point.y + rand(-7, 7), rot: rand(-.35, .35), shine: rand(.4, 1), owner: cleanUsername(username || 'çiftlik') });
+    if (state.eggs.length > MAX_VISIBLE_EGGS) state.eggs.shift();
+    updateHud();
+    if (!quiet) showToast(displayName(username || 'çiftlik') + ' çiftliğe bir yumurta bıraktı! 🥚');
+  }
+
+  function beginFoxAttack(sender) {
+    if (state.fox) {
+      state.pendingFoxes = Math.min(5, state.pendingFoxes + 1);
+      showToast('🦊 Yeni tilki sıraya girdi!');
+      return;
+    }
+    const target = state.chickens.length ? state.chickens[Math.floor(Math.random() * state.chickens.length)] : null;
+    state.fox = {
+      phase: 'approach', x: -48, y: target ? target.y + 6 : 360,
+      sx: -48, sy: target ? target.y + 6 : 360,
+      tx: target ? target.x : 210, ty: target ? target.y + 6 : 360,
+      progress: 0, targetId: target ? target.id : null,
+      capturedUsername: null, sender: cleanUsername(sender), wait: 0
+    };
+    showToast(displayName(sender) + ' tilki saldırısı gönderdi! 🦊');
+  }
+
+  // ------------------------------------------------------------
+  // TIKTOK HEDİYE ADAPTÖRÜ İÇİN AYRI TUTULAN GENEL FONKSİYONLAR
+  // Gelecekteki bir entegrasyon, ilgili hediye olayında bu fonksiyonları çağırmalı.
+  // Bu HTML dosyası şu anda TikTok'a bağlanmaz ve LIVE olaylarını dinlemez.
+  // ------------------------------------------------------------
+  function onChickenGift(username) {
+    return addChicken(username);
+  }
+
+  function onFoxGift(username) {
+    beginFoxAttack(username);
+  }
+
+  function onBigGift(username, giftValue) {
+    const value = Number(giftValue);
+    if (!Number.isFinite(value) || value <= 0) {
+      showToast('Hediye puanı 0’dan büyük bir sayı olmalı.');
+      return false;
+    }
+    if (value > state.bestGiftValue) {
+      state.bestGiftValue = value;
+      state.owner = cleanUsername(username);
+      updateHud();
+      showToast('👑 Yeni çiftlik sahibi: ' + displayName(state.owner) + ' · ' + value.toLocaleString('tr-TR') + ' puan!');
+      return true;
+    }
+    if (value === state.bestGiftValue) {
+      showToast('Eşit hediye! Lider değişmedi: ' + displayName(state.owner) + '.');
+    } else {
+      showToast('Hediye alındı; liderlik için ' + state.bestGiftValue.toLocaleString('tr-TR') + ' puanı geçmelisin.');
+    }
+    return false;
+  }
+
+  function onEggGift(username) {
+    addEgg(username);
+  }
+
+  // İleride harici bir TikTok köprüsü bu dört fonksiyonu çağırabilir.
+  // Gerçek hediye bağlantısı / sunucu / servis bu demo dosyasında bulunmaz.
+  window.onChickenGift = onChickenGift;
+  window.onFoxGift = onFoxGift;
+  window.onBigGift = onBigGift;
+  window.onEggGift = onEggGift;
+  window.FarmLiveDemo = Object.freeze({ onChickenGift, onFoxGift, onBigGift, onEggGift });
+
+  function resetGame() {
+    state.chickens = [];
+    state.eggs = [];
+    state.owner = null;
+    state.bestGiftValue = 0;
+    state.fox = null;
+    state.pendingFoxes = 0;
+    state.farmer = { x: 74, y: 530, tx: 105, ty: 526, pause: 1.4, phase: 0 };
+    addChicken('misafir_01', true);
+    addChicken('misafir_02', true);
+    addChicken('misafir_03', true);
+    addEgg('çiftlik', true);
+    updateHud();
+    showToast('Çiftlik yeniden hazır! Yeni hediyeleri bekliyor. 🌱');
+  }
+
+  // ------------------------------------------------------------
+  // CANVAS ÇİZİMİ — harici görsel/kütüphane yok, tamamen yerel vektörler
+  // ------------------------------------------------------------
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+    const w = Math.max(1, Math.round(rect.width * dpr));
+    const h = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w; canvas.height = h;
+    }
+    state.dpr = dpr;
+    state.width = rect.width;
+    state.height = rect.height;
+  }
+
+  function roundedRect(x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+  }
+
+  function drawCloud(x, y, scale = 1) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath(); ctx.arc(0, 5, 12, 0, Math.PI * 2); ctx.arc(13, 0, 15, 0, Math.PI * 2); ctx.arc(29, 7, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBackground(t) {
+    const g = ctx.createLinearGradient(0, 0, 0, 600);
+    g.addColorStop(0, '#b9e6a0'); g.addColorStop(.58, '#a6d98b'); g.addColorStop(1, '#87c875');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 420, 600);
+    // Uzak çimen tepeleri
+    ctx.fillStyle = 'rgba(235,247,190,.35)';
+    ctx.beginPath(); ctx.moveTo(0, 160); ctx.quadraticCurveTo(90, 100, 180, 152); ctx.quadraticCurveTo(300, 80, 420, 150); ctx.lineTo(420, 260); ctx.lineTo(0, 260); ctx.fill();
+    ctx.fillStyle = 'rgba(80,151,75,.12)';
+    for (let i = 0; i < 18; i++) {
+      const x = (i * 83 + 22) % 420, y = 70 + (i * 47) % 470;
+      ctx.beginPath(); ctx.ellipse(x, y, 10 + (i % 3) * 3, 3, -.35, 0, Math.PI * 2); ctx.fill();
+    }
+    drawCloud(90 + Math.sin(t * .12) * 4, 68, .78);
+    drawCloud(292 + Math.sin(t * .09 + 1) * 5, 102, .55);
+    // Uzak çit ve küçük çiçekler
+    ctx.strokeStyle = 'rgba(113,145,76,.42)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 180); ctx.lineTo(420, 176); ctx.stroke();
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 61 + 15) % 420, y = 492 + (i % 4) * 18;
+      ctx.fillStyle = i % 2 ? '#fff2b9' : '#fff6d8';
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawHouse() {
+    ctx.save();
+    // Gölge
+    ctx.fillStyle = 'rgba(58,92,49,.18)'; ctx.beginPath(); ctx.ellipse(76, 203, 62, 14, 0, 0, Math.PI * 2); ctx.fill();
+    // Gövde
+    ctx.fillStyle = '#fff0cf'; ctx.strokeStyle = '#d6b987'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(24, 126); ctx.lineTo(78, 91); ctx.lineTo(132, 126); ctx.lineTo(132, 191); ctx.lineTo(24, 191); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Çatı
+    ctx.fillStyle = '#c96f55'; ctx.strokeStyle = '#a95843';
+    ctx.beginPath(); ctx.moveTo(14, 130); ctx.lineTo(77, 82); ctx.lineTo(143, 130); ctx.lineTo(132, 139); ctx.lineTo(77, 101); ctx.lineTo(25, 140); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Çatı ışığı
+    ctx.strokeStyle = 'rgba(255,220,191,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(77, 88); ctx.lineTo(133, 128); ctx.stroke();
+    // Kapı, pencere
+    roundedRect(67, 145, 25, 46, 5, '#9c7049', '#805b3d');
+    ctx.fillStyle = '#b8dce0'; ctx.strokeStyle = '#fff8df'; ctx.lineWidth = 3; ctx.fillRect(37, 145, 21, 20); ctx.strokeRect(37,145,21,20); ctx.fillRect(103,145,19,20); ctx.strokeRect(103,145,19,20);
+    ctx.strokeStyle = '#fff8df'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(47.5,145); ctx.lineTo(47.5,165); ctx.moveTo(37,155); ctx.lineTo(58,155); ctx.moveTo(112.5,145); ctx.lineTo(112.5,165); ctx.stroke();
+    // Baca
+    ctx.fillStyle = '#a95843'; ctx.fillRect(101, 91, 13, 28); ctx.fillStyle = '#eaa184'; ctx.fillRect(98,89,19,6);
+    ctx.restore();
+  }
+
+  function drawTree(x, y, scale = 1) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    ctx.fillStyle = 'rgba(48,91,43,.2)'; ctx.beginPath(); ctx.ellipse(0, 44, 43, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#956b46'; ctx.beginPath(); ctx.roundRect(-7, 7, 14, 42, 5); ctx.fill();
+    ctx.fillStyle = '#559b51'; ctx.beginPath(); ctx.arc(-17, 2, 25, 0, Math.PI * 2); ctx.arc(12, -8, 29, 0, Math.PI * 2); ctx.arc(27, 12, 21, 0, Math.PI * 2); ctx.arc(-4, -22, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(180,222,119,.48)'; ctx.beginPath(); ctx.arc(-12,-9,11,0,Math.PI*2); ctx.arc(16,-19,10,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawHay(x, y, scale = 1) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    ctx.fillStyle = 'rgba(63,94,43,.17)'; ctx.beginPath(); ctx.ellipse(0, 13, 34, 10, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#dfb85b'; ctx.strokeStyle = '#bb9140'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(-28,-15,56,30,9); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,232,153,.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-12,-12); ctx.lineTo(-12,12); ctx.moveTo(5,-12); ctx.lineTo(5,12); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPenGround() {
+    ctx.save();
+    ctx.fillStyle = 'rgba(55,100,48,.18)';
+    ctx.beginPath(); ctx.moveTo(66,270); ctx.lineTo(350,250); ctx.lineTo(390,454); ctx.lineTo(95,491); ctx.closePath(); ctx.fill();
+    const g = ctx.createLinearGradient(90,260,300,480); g.addColorStop(0,'#c4e89a'); g.addColorStop(1,'#9fd47a');
+    ctx.fillStyle = g; ctx.strokeStyle = '#7eae5f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(61,257); ctx.lineTo(347,240); ctx.lineTo(379,443); ctx.lineTo(91,477); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Pen içi hafif patika
+    ctx.strokeStyle = 'rgba(239,221,160,.28)'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(134,435); ctx.quadraticCurveTo(205,390,308,425); ctx.stroke();
+    // Çim tutamları
+    ctx.strokeStyle = 'rgba(89,145,66,.32)'; ctx.lineWidth = 1.4;
+    for(let i=0;i<28;i++) { const x=100+(i*37)%260, y=278+(i*31)%170; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-2,y-5); ctx.moveTo(x,y); ctx.lineTo(x+3,y-6); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  const fencePoints = [{x:61,y:257},{x:347,y:240},{x:379,y:443},{x:91,y:477}];
+  function drawFenceEdge(a,b,front=false) {
+    const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy), count=Math.max(3,Math.floor(len/29));
+    ctx.save();
+    ctx.lineCap='round';
+    // İki yatay korkuluk
+    for (const offset of [-7, 3]) {
+      ctx.strokeStyle = front ? '#a87543' : '#b7834e'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y+offset); ctx.lineTo(b.x,b.y+offset); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,220,162,.42)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y+offset-1.4); ctx.lineTo(b.x,b.y+offset-1.4); ctx.stroke();
+    }
+    for(let i=0;i<=count;i++) {
+      const p=i/count, x=a.x+dx*p, y=a.y+dy*p;
+      ctx.fillStyle='rgba(76,67,43,.16)'; ctx.beginPath(); ctx.ellipse(x+2,y+9,5,2.5,0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#8f613a'; ctx.lineWidth=9; ctx.beginPath(); ctx.moveTo(x,y-12); ctx.lineTo(x,y+11); ctx.stroke();
+      ctx.strokeStyle='#d6a36a'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x-1.2,y-11); ctx.lineTo(x-1.2,y+8); ctx.stroke();
+      ctx.fillStyle='#e0b77b'; ctx.beginPath(); ctx.ellipse(x,y-12,5.2,3,0,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawFence(backOnly=false) {
+    // Arka iki kenar tavuklardan önce, ön iki kenar sonra çizilir.
+    drawFenceEdge(fencePoints[0],fencePoints[1],false);
+    drawFenceEdge(fencePoints[1],fencePoints[2],false);
+    if (!backOnly) {
+      drawFenceEdge(fencePoints[2],fencePoints[3],true);
+      drawFenceEdge(fencePoints[3],fencePoints[0],true);
+    }
+  }
+
+  function drawCoop(t) {
+    ctx.save();
+    ctx.fillStyle='rgba(57,88,42,.2)'; ctx.beginPath(); ctx.ellipse(224,290,54,12,0,0,Math.PI*2); ctx.fill();
+    // Kümes gövdesi
+    ctx.fillStyle='#f7d9a5'; ctx.strokeStyle='#b98150'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(183,235); ctx.lineTo(224,210); ctx.lineTo(266,235); ctx.lineTo(266,279); ctx.lineTo(183,279); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#b95e49'; ctx.beginPath(); ctx.moveTo(175,238); ctx.lineTo(224,202); ctx.lineTo(275,238); ctx.lineTo(266,245); ctx.lineTo(224,217); ctx.lineTo(184,246); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#845737'; ctx.beginPath(); ctx.roundRect(211,249,27,30,4); ctx.fill();
+    ctx.fillStyle='#f6efcc'; ctx.beginPath(); ctx.arc(225,237,7,Math.PI,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e6c18a'; ctx.fillRect(190,265,12,5); ctx.fillRect(246,265,12,5);
+    // Kümes tabelası
+    roundedRect(203,226,42,14,5,'#fff4d5','#ddb980');
+    ctx.fillStyle='#8b6947'; ctx.font='bold 8px system-ui'; ctx.textAlign='center'; ctx.fillText('KÜMES',224,236);
+    // Hafif baca dumanı
+    ctx.fillStyle='rgba(255,255,255,.38)'; ctx.beginPath(); ctx.arc(258,211+Math.sin(t*1.5)*2,4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFeeder(x,y) {
+    ctx.save(); ctx.fillStyle='rgba(59,85,42,.18)'; ctx.beginPath(); ctx.ellipse(x,y+13,25,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#bd7543'; ctx.strokeStyle='#8e5533'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.roundRect(x-17,y-5,34,17,7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#e9bd6d'; ctx.beginPath(); ctx.ellipse(x,y-5,18,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e8cf89'; for(let i=0;i<7;i++){ctx.beginPath();ctx.arc(x-11+i*3.6,y-5+Math.sin(i*2)*2,1.2,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+
+  function drawWater(x,y) {
+    ctx.save(); ctx.fillStyle='rgba(59,85,42,.18)'; ctx.beginPath(); ctx.ellipse(x,y+14,23,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#df765e'; ctx.beginPath(); ctx.roundRect(x-17,y-1,34,14,6); ctx.fill();
+    ctx.fillStyle='#9edbe0'; ctx.strokeStyle='#6cb4bf'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y-3,16,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.72)'; ctx.beginPath(); ctx.ellipse(x-5,y-5,5,2,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawEgg(egg) {
+    ctx.save(); ctx.translate(egg.x,egg.y); ctx.rotate(egg.rot);
+    ctx.fillStyle='rgba(69,93,46,.2)'; ctx.beginPath(); ctx.ellipse(2,8,7,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff9e8'; ctx.strokeStyle='#e2d8bc'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,-8); ctx.bezierCurveTo(8,-6,8,5,2,8); ctx.bezierCurveTo(-5,10,-9,2,-5,-4); ctx.bezierCurveTo(-3,-8,-2,-9,0,-8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.75)'; ctx.beginPath(); ctx.ellipse(-2,-3,2,3,-.4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawChicken(chicken, t) {
+    ctx.save();
+    const bob = Math.sin(t*5 + chicken.bob) * 1.2;
+    const peck = chicken.eating > 0 ? Math.sin(t*15 + chicken.bob) * 1.8 : 0;
+    ctx.translate(chicken.x, chicken.y + bob);
+    ctx.rotate(chicken.angle * .25);
+    // Gölge
+    ctx.fillStyle='rgba(55,82,42,.18)'; ctx.beginPath(); ctx.ellipse(2,9,14,5,0,0,Math.PI*2); ctx.fill();
+    // Ayaklar
+    ctx.strokeStyle='#db873f'; ctx.lineWidth=2; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-3,5); ctx.lineTo(-5,11); ctx.moveTo(-5,10); ctx.lineTo(-9,11); ctx.moveTo(-5,10); ctx.lineTo(-2,12);
+    ctx.moveTo(5,5); ctx.lineTo(7,11); ctx.moveTo(7,10); ctx.lineTo(3,12); ctx.moveTo(7,10); ctx.lineTo(11,11); ctx.stroke();
+    // Gövde / kanat
+    ctx.fillStyle='#fffaf0'; ctx.strokeStyle='#ddcfad'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.ellipse(0,0,14,11,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#eadfca'; ctx.beginPath(); ctx.ellipse(-3,1,7,6,-.3,0,Math.PI*2); ctx.fill();
+    // Kuyruk tüyleri
+    ctx.fillStyle='#fffaf0'; ctx.beginPath(); ctx.arc(-12,-2,4,0,Math.PI*2); ctx.arc(-14,-7,3,0,Math.PI*2); ctx.fill();
+    // Boyun ve kafa
+    ctx.fillStyle='#fffaf0'; ctx.beginPath(); ctx.arc(9,-8+peck,7.5,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#ddcfad'; ctx.stroke();
+    // Tarak
+    ctx.fillStyle='#e66b61'; ctx.beginPath(); ctx.arc(7,-16+peck,2.7,0,Math.PI*2); ctx.arc(11,-17+peck,2.5,0,Math.PI*2); ctx.arc(14,-15+peck,2,0,Math.PI*2); ctx.fill();
+    // Gaga ve göz
+    ctx.fillStyle='#e99a3c'; ctx.beginPath(); ctx.moveTo(15,-8+peck); ctx.lineTo(21,-6+peck); ctx.lineTo(15,-3+peck); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3e4537'; ctx.beginPath(); ctx.arc(11,-10+peck,1.25,0,Math.PI*2); ctx.fill();
+    // Kullanıcı etiketi
+    const label = chicken.username.length > 13 ? chicken.username.slice(0,12)+'…' : chicken.username;
+    ctx.font='700 8px system-ui, sans-serif'; const tw=ctx.measureText(label).width;
+    roundedRect(-tw/2-6,-33,tw+12,13,6,'rgba(47,69,43,.86)','rgba(255,255,255,.35)');
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label,0,-26.5);
+    ctx.restore();
+  }
+
+  function drawFarmer(t) {
+    const f=state.farmer;
+    ctx.save(); ctx.translate(f.x,f.y+Math.sin(t*5)*1.2);
+    ctx.fillStyle='rgba(56,84,41,.2)'; ctx.beginPath(); ctx.ellipse(0,12,14,5,0,0,Math.PI*2); ctx.fill();
+    // Bacaklar
+    ctx.strokeStyle='#5b5141'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(-4,3); ctx.lineTo(-5,11); ctx.moveTo(4,3); ctx.lineTo(5,11); ctx.stroke();
+    // Gövde tulum
+    ctx.fillStyle='#5487b5'; ctx.strokeStyle='#3c6e98'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.roundRect(-10,-10,20,17,6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#f1d0a0'; ctx.beginPath(); ctx.arc(0,-15,7,0,Math.PI*2); ctx.fill();
+    // Şapka
+    ctx.fillStyle='#d5a44f'; ctx.beginPath(); ctx.ellipse(0,-21,11,4,0,0,Math.PI*2); ctx.fill(); ctx.fillRect(-6,-27,12,7);
+    // isim tabelası
+    const name=state.owner ? displayName(state.owner) : 'ÇİFTLİKÇİ';
+    ctx.font='800 8px system-ui'; const w=Math.min(94,ctx.measureText(name).width+13);
+    roundedRect(-w/2,-43,w,13,6,'rgba(49,70,48,.88)','rgba(255,255,255,.35)');
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(name,0,-36.5, w-8);
+    ctx.restore();
+  }
+
+  function drawFox(fox, t) {
+    if (!fox) return;
+    ctx.save(); ctx.translate(fox.x,fox.y+Math.sin(t*8)*1.2);
+    // Kuyruk
+    ctx.fillStyle='#e58b43'; ctx.strokeStyle='#b96632'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.moveTo(-12,0); ctx.quadraticCurveTo(-28,-17,-39,-5); ctx.quadraticCurveTo(-31,12,-12,10); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#fff2dc'; ctx.beginPath(); ctx.moveTo(-37,-6); ctx.quadraticCurveTo(-28,-5,-21,5); ctx.quadraticCurveTo(-32,9,-38,1); ctx.closePath(); ctx.fill();
+    // Beden
+    ctx.fillStyle='#e9863d'; ctx.beginPath(); ctx.ellipse(-2,2,22,12,-.1,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff0da'; ctx.beginPath(); ctx.ellipse(0,8,13,5,0,0,Math.PI*2); ctx.fill();
+    // Baş ve kulaklar
+    ctx.fillStyle='#eb9144'; ctx.beginPath(); ctx.arc(14,-6,11,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7,-13); ctx.lineTo(7,-26); ctx.lineTo(17,-16); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(17,-15); ctx.lineTo(25,-25); ctx.lineTo(26,-11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#f5c5a0'; ctx.beginPath(); ctx.moveTo(9,-19); ctx.lineTo(10,-23); ctx.lineTo(14,-17); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(21,-17); ctx.lineTo(24,-21); ctx.lineTo(24,-14); ctx.closePath(); ctx.fill();
+    // Burun, göz
+    ctx.fillStyle='#fff0dc'; ctx.beginPath(); ctx.moveTo(19,-4); ctx.lineTo(31,0); ctx.lineTo(18,4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3b3b32'; ctx.beginPath(); ctx.arc(19,-8,1.5,0,Math.PI*2); ctx.arc(31,0,2,0,Math.PI*2); ctx.fill();
+    // Tilki kaçarken yakaladığı tavuğu sırtında taşır.
+    if (fox.phase==='escape' && fox.capturedUsername) {
+      ctx.fillStyle='#fffaf0'; ctx.strokeStyle='#ddcfad'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.ellipse(-2,-11,9,6,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(5,-17,4.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#e66b61'; ctx.beginPath(); ctx.arc(3,-22,1.5,0,Math.PI*2); ctx.arc(6,-22,1.4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#e99a3c'; ctx.beginPath(); ctx.moveTo(9,-17); ctx.lineTo(14,-15); ctx.lineTo(9,-13); ctx.closePath(); ctx.fill();
+    }
+    // Bacaklar
+    ctx.strokeStyle='#874d35'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(-11,9); ctx.lineTo(-13,16); ctx.moveTo(4,9); ctx.lineTo(5,16); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawScene(t) {
+    ctx.save();
+    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+    ctx.scale(state.width/420,state.height/600);
+    drawBackground(t);
+    drawHouse();
+    drawTree(350,145,.95);
+    drawTree(38,360,.44);
+    drawHay(58,510,.88);
+    drawHay(356,514,.82);
+    drawPenGround();
+    drawFence(true);
+    drawCoop(t);
+    drawFeeder(153,361);
+    drawWater(286,358);
+    // Yumurtalar ve tavuklar derinlik sırasına göre çizilir.
+    for (const egg of state.eggs) drawEgg(egg);
+    const sorted = state.chickens.slice().sort((a,b)=>a.y-b.y);
+    for (const chicken of sorted) drawChicken(chicken,t);
+    // Tilki ve ön çit katmanları
+    drawFox(state.fox,t);
+    drawFence(false);
+    drawFarmer(t);
+    // Çiftliğe sıcak, yumuşak ışık
+    const glow=ctx.createRadialGradient(210,290,30,210,290,330);
+    glow.addColorStop(0,'rgba(255,255,208,.05)'); glow.addColorStop(1,'rgba(55,105,48,.07)');
+    ctx.fillStyle=glow; ctx.fillRect(0,0,420,600);
+    ctx.restore();
+  }
+
+  // ------------------------------------------------------------
+  // HAREKET / ANİMASYON
+  // ------------------------------------------------------------
+  function updateChickens(dt) {
+    for (const chicken of state.chickens) {
+      chicken.bob += dt * 2;
+      if (chicken.pause > 0) chicken.pause -= dt;
+      else {
+        const dx=chicken.tx-chicken.x, dy=chicken.ty-chicken.y, dist=Math.hypot(dx,dy);
+        if (dist < 4) {
+          chicken.pause = chicken.targetKind === 'feed' ? rand(1.8,3.2) : rand(.6,2.0);
+          if (chicken.targetKind === 'feed') chicken.eating = rand(1.8,3.2);
+          if (Math.random() < .24) {
+            chicken.tx = 153 + rand(-7,7); chicken.ty = 361 + rand(-5,5); chicken.targetKind = 'feed';
+          } else {
+            chicken.tx=rand(120,330); chicken.ty=rand(292,420); chicken.targetKind = 'wander';
+          }
+        } else {
+          const step=Math.min(dist,chicken.speed*dt);
+          chicken.x+=dx/dist*step; chicken.y+=dy/dist*step;
+          chicken.angle=Math.atan2(dy,dx);
+        }
+      }
+      if (chicken.eating>0) chicken.eating-=dt;
+      chicken.nextEgg-=dt;
+      if (chicken.nextEgg<=0) {
+        state.eggs.push({x:clamp(chicken.x+rand(-8,8),105,350),y:clamp(chicken.y+rand(7,13),285,440),rot:rand(-.35,.35),shine:rand(.4,1),owner:chicken.username});
+        if(state.eggs.length>MAX_VISIBLE_EGGS) state.eggs.shift();
+        chicken.nextEgg=rand(36,62);
+        updateHud();
+      }
+    }
+  }
+
+  function updateFox(dt) {
+    const fox=state.fox; if(!fox) return;
+    if (fox.phase==='approach') {
+      fox.progress+=dt/1.65;
+      const p=clamp(fox.progress,0,1), ease=1-Math.pow(1-p,3);
+      fox.x=fox.sx+(fox.tx-fox.sx)*ease;
+      fox.y=fox.sy+(fox.ty-fox.sy)*ease;
+      if(p>=1) {
+        const victim=state.chickens.find(c=>c.id===fox.targetId);
+        if(victim) {
+          fox.capturedUsername=victim.username;
+          state.chickens=state.chickens.filter(c=>c.id!==victim.id);
+          updateHud();
+          showToast(displayName(victim.username)+' adlı izleyicinin tavuğu tilki tarafından çalındı! 🦊');
+        } else {
+          showToast('Tilki kümese ulaştı ama yakalayacak tavuk bulamadı.');
+        }
+        fox.phase='escape'; fox.progress=0; fox.sx=fox.x; fox.sy=fox.y;
+      }
+    } else {
+      fox.progress+=dt/1.8;
+      const p=clamp(fox.progress,0,1), ease=p*p*(3-2*p);
+      fox.x=fox.sx+(480-fox.sx)*ease;
+      fox.y=fox.sy+(fox.sy-340)*.16*ease;
+      if(p>=1) {
+        state.fox=null;
+        if(state.pendingFoxes>0) { state.pendingFoxes--; beginFoxAttack('izleyici'); }
+      }
+    }
+  }
+
+  function updateFarmer(dt) {
+    const f=state.farmer;
+    if(f.pause>0) f.pause-=dt;
+    else {
+      const dx=f.tx-f.x,dy=f.ty-f.y,d=Math.hypot(dx,dy);
+      if(d<3) { f.pause=rand(1,3); f.tx=rand(45,105); f.ty=rand(515,545); }
+      else { const s=Math.min(d,18*dt); f.x+=dx/d*s; f.y+=dy/d*s; }
+    }
+    f.phase+=dt;
+  }
+
+  function frame(now) {
+    if (!state.lastFrame) state.lastFrame=now;
+    const dt=Math.min(.04,(now-state.lastFrame)/1000);
+    state.lastFrame=now; state.elapsed+=dt;
+    updateChickens(dt); updateFox(dt); updateFarmer(dt);
+    drawScene(state.elapsed);
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------
+  // DEMO BUTONLARI — doğrudan yukarıdaki hediye fonksiyonlarını çağırır.
+  // ------------------------------------------------------------
+  function currentUsername() { return cleanUsername(ui.username.value); }
+  $('chickenBtn').addEventListener('click', () => onChickenGift(currentUsername()));
+  $('foxBtn').addEventListener('click', () => onFoxGift(currentUsername()));
+  $('bigBtn').addEventListener('click', () => onBigGift(currentUsername(), ui.giftValue.value));
+  $('eggBtn').addEventListener('click', () => onEggGift(currentUsername()));
+  $('resetBtn').addEventListener('click', resetGame);
+
+  // İlk açılışta sahne boş kalmasın.
+  resizeCanvas();
+  resetGame();
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(() => resizeCanvas()).observe(canvas);
+  } else {
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+  }
+  document.addEventListener('visibilitychange', () => { state.lastFrame=0; });
+  requestAnimationFrame(frame);
+
+})();
+</script>
+
+<style>
+.live-connection-pill{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#fff4d8;color:#806020;border:1px solid #f0dfb6;font-size:10px;font-weight:900}
+.live-connection-pill .live-dot{width:7px;height:7px;border-radius:50%;background:#d5a23e}
+.live-connection-pill.connected{background:#e8f5e5;color:#39743b;border-color:#d0e8c9}
+.live-connection-pill.connected .live-dot{background:#55ad50;box-shadow:0 0 0 3px #55ad5022}
+.live-connection-pill.error{background:#fde9e4;color:#9a4836;border-color:#f4d0c7}
+.live-connection-pill.error .live-dot{background:#d65c43}
+</style>
+<script>
+/*
+ * LIVE bridge client:
+ * - Connects to this same cloud host over WebSocket.
+ * - Receives normalized gift events from server.js.
+ * - Demo controls remain available for safe local testing.
+ * - No TikTok credentials or connector secrets are stored in this page.
+ */
+(() => {
+  const pill = document.createElement('div');
+  pill.className = 'live-connection-pill';
+  pill.innerHTML = '<span class="live-dot"></span><span id="liveConnectionText">LIVE bağlantısı bekleniyor</span>';
+  const topbar = document.querySelector('.topbar');
+  const demoChip = topbar && topbar.querySelector('.demo-chip');
+  if (topbar && demoChip) {
+    demoChip.replaceWith(pill);
+  } else if (topbar) {
+    topbar.appendChild(pill);
+  }
+
+  const text = pill.querySelector('#liveConnectionText');
+  let socket = null;
+  let retryDelay = 1000;
+  let retryTimer = null;
+  let intentionallyClosed = false;
+  let heartbeatTimer = null;
+
+  function setStatus(state, message) {
+    pill.classList.remove('connected', 'error');
+    if (state === 'connected') pill.classList.add('connected');
+    if (state === 'error') pill.classList.add('error');
+    text.textContent = message;
+  }
+
+  function dispatchGift(event) {
+    const api = window.FarmLiveDemo;
+    if (!api || !event || typeof event !== 'object') return;
+    const username = String(event.username || 'izleyici').replace(/^@/, '').slice(0, 40);
+    switch (event.type) {
+      case 'chicken': api.onChickenGift(username); break;
+      case 'fox': api.onFoxGift(username); break;
+      case 'big': api.onBigGift(username, Number(event.giftValue) || 0); break;
+      case 'egg': api.onEggGift(username); break;
+    }
+  }
+
+  function connect() {
+    if (intentionallyClosed) return;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(protocol + '//' + location.host + '/ws');
+    socket.addEventListener('open', () => {
+      retryDelay = 1000;
+      setStatus('connected', 'LIVE sunucusuna bağlı');
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) socket.send('ping');
+      }, 25000);
+    });
+    socket.addEventListener('message', (message) => {
+      try {
+        const data = JSON.parse(message.data);
+        if (data.type === 'status') {
+          setStatus(data.connected ? 'connected' : 'waiting',
+            data.connected ? 'TikTok LIVE bağlı' : 'TikTok LIVE bekleniyor');
+        } else if (data.type === 'gift') {
+          dispatchGift(data);
+        } else if (data.type === 'notice') {
+          if (window.FarmLiveDemo && data.message) {
+            // Status notices are deliberately non-gameplay events.
+            console.info('[Farm LIVE]', data.message);
+          }
+        }
+      } catch (error) {
+        console.warn('LIVE mesajı okunamadı:', error);
+      }
+    });
+    socket.addEventListener('close', () => {
+      clearInterval(heartbeatTimer);
+      setStatus('error', 'Sunucu bağlantısı kesildi · yeniden deneniyor');
+      scheduleReconnect();
+    });
+    socket.addEventListener('error', () => {
+      setStatus('error', 'Bağlantı hatası · yeniden deneniyor');
+      try { socket.close(); } catch (_) {}
+    });
+  }
+
+  function scheduleReconnect() {
+    if (intentionallyClosed || retryTimer) return;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      connect();
+    }, retryDelay);
+    retryDelay = Math.min(Math.round(retryDelay * 1.8), 30000);
+  }
+
+  window.addEventListener('online', () => {
+    if (!socket || socket.readyState === WebSocket.CLOSED) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+      retryDelay = 1000;
+      connect();
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    intentionallyClosed = true;
+    clearTimeout(retryTimer);
+    clearInterval(heartbeatTimer);
+    if (socket) socket.close();
+  });
+
+  connect();
+})();
+</script>
+
+</body>
+</html>
