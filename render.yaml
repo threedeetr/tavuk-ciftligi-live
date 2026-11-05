@@ -15,7 +15,7 @@ services:
       - key: CHICKEN_GIFTS
         value: Rose
       - key: FOX_GIFTS
-        value: Fox
+.       value: Paw
       - key: EGG_GIFTS
         value: Heart Me
       - key: BIG_GIFT_MIN
