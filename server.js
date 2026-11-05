@@ -83,13 +83,7 @@ app.get('/api/status', (_req, res) => res.json({
 
 
 const farmMissions = [
-  '🏚️ Çiftliğin borcunu öde!',
-  '🏠 Yeni kümes inşa et!',
-  '🌽 Kışlık yem deposunu doldur!',
-  '🚜 Çiftliğe traktör al!',
-  '🛡️ Tilkilere karşı çitleri güçlendir!',
-  '🏡 Çiftliği genişlet!',
-  '🐔 Tavuklara yeni yuva yap!'
+  '🏚️ Çiftliğin borcunu öde!'
 ];
 
 const goal = {
@@ -115,14 +109,7 @@ function nextFarmGoal() {
   goal.progress = 0;
   goal.completed = false;
   goal.nextAt = 0;
-
-  const options = farmMissions.filter(
-    name => name !== goal.title
-  );
-
-  goal.title = options[
-    Math.floor(Math.random() * options.length)
-  ];
+  goal.title = '🏚️ Çiftliğin borcunu öde!';
 
   publishGoal();
 }
