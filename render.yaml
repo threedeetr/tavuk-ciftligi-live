@@ -19,4 +19,4 @@ services:
       - key: EGG_GIFTS
         value: Heart Me
       - key: BIG_GIFT_MIN
-        value: "1000"
+        value: "100"
