@@ -672,16 +672,9 @@ body {
     ctx.save();
     ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
     
-const scale = Math.min(
-  state.width / 420,
-  state.height / 600
-);
 
-const offsetX = (state.width - 420 * scale) / 2;
-const offsetY = (state.height - 600 * scale) / 2;
+ctx.scale(state.width/420,state.height/600);
 
-ctx.translate(offsetX, offsetY);
-ctx.scale(scale, scale);
 
     drawBackground(t);
     drawHouse();
