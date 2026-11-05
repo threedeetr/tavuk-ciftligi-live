@@ -1140,5 +1140,56 @@ document.getElementById('farmSoundButton')
   });
 </script>
 
+
+<!-- TAM EKRAN DÜĞMESİ -->
+<button id="farmFullscreenButton"
+  type="button"
+  style="
+    position:fixed;
+    top:70px;
+    right:12px;
+    z-index:9999;
+    padding:11px 14px;
+    border:0;
+    border-radius:12px;
+    background:#264b35;
+    color:white;
+    font-size:14px;
+    font-weight:bold;
+    box-shadow:0 3px 10px #0003;
+  ">
+  ⛶ Tam Ekran
+</button>
+
+<script>
+(function () {
+  const button = document.getElementById(
+    'farmFullscreenButton'
+  );
+
+  button.addEventListener('click', async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error('Tam ekran hatası:', error);
+      alert(
+        'Tarayıcı tam ekran modunu desteklemiyor ' +
+        'veya bu işlem engellendi.'
+      );
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    button.textContent = document.fullscreenElement
+      ? '⛶ Çıkış'
+      : '⛶ Tam Ekran';
+  });
+})();
+</script>
+
 </body>
 </html>
