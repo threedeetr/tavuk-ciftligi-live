@@ -282,6 +282,65 @@ body {
   };
   const displayName = (name) => '@' + cleanUsername(name);
 
+
+let farmAudio = null;
+let farmSoundOn = false;
+
+function farmTone(freq, duration, delay = 0, endFreq = freq, wave = 'sine') {
+  if (!farmSoundOn || !farmAudio) return;
+
+  const start = farmAudio.currentTime + delay;
+  const osc = farmAudio.createOscillator();
+  const gain = farmAudio.createGain();
+
+  osc.type = wave;
+  osc.frequency.setValueAtTime(freq, start);
+  osc.frequency.exponentialRampToValueAtTime(
+    Math.max(30, endFreq), start + duration
+  );
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  osc.connect(gain);
+  gain.connect(farmAudio.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+function farmSound(kind) {
+  if (!farmSoundOn) return;
+
+  if (kind === 'chicken') {
+    farmTone(480, .13, 0, 320, 'sawtooth');
+    farmTone(520, .13, .17, 350, 'sawtooth');
+    farmTone(680, .28, .36, 260, 'sawtooth');
+  }
+
+  if (kind === 'chick') {
+    farmTone(1100, .10, 0, 1450);
+    farmTone(1200, .10, .15, 1550);
+    farmTone(1350, .14, .30, 1650);
+  }
+
+  if (kind === 'fox') {
+    farmTone(320, .12, 0, 850, 'triangle');
+    farmTone(900, .35, .13, 280, 'sawtooth');
+  }
+
+  if (kind === 'love') {
+    farmTone(523, .16, 0, 659);
+    farmTone(659, .16, .18, 784);
+  }
+
+  if (kind === 'win') {
+    [523, 659, 784, 1047].forEach((n, i) => {
+      farmTone(n, .18, i * .16, n, 'triangle');
+    });
+  }
+}
+
   function showToast(message) {
     ui.toast.textContent = message;
     ui.toast.classList.add('show');
@@ -348,13 +407,16 @@ body {
   // Gelecekteki bir entegrasyon, ilgili hediye olayında bu fonksiyonları çağırmalı.
   // Bu HTML dosyası şu anda TikTok'a bağlanmaz ve LIVE olaylarını dinlemez.
   // ------------------------------------------------------------
-  function onChickenGift(username) {
-    return addChicken(username);
-  }
-
-  function onFoxGift(username) {
-    beginFoxAttack(username);
-  }
+  
+function onChickenGift(username) {
+  farmSound('chicken');
+  return addChicken(username);
+}
+  
+function onFoxGift(username) {
+  farmSound('fox');
+  beginFoxAttack(username);
+}
 
   function onBigGift(username, giftValue) {
     const value = Number(giftValue);
@@ -365,6 +427,7 @@ body {
     if (value > state.bestGiftValue) {
       state.bestGiftValue = value;
       state.owner = cleanUsername(username);
+farmSound('win');
       updateHud();
       showToast('👑 Yeni çiftlik sahibi: ' + displayName(state.owner) + ' · ' + value.toLocaleString('tr-TR') + ' puan!');
       return true;
@@ -377,7 +440,6 @@ body {
     return false;
   }
 
-  
 function onEggGift(username, babyUsername) {
   if (state.chickens.length === 0) {
     showToast('🐔 Çiftleşme için çiftlikte tavuk olmalı!');
@@ -392,16 +454,24 @@ function onEggGift(username, babyUsername) {
   const parentName = parent.username;
   const babyName = cleanUsername(babyUsername || username);
 
-  showToast('❤️ @' + partner + ' ile @' +
-    parentName + ' çiftleşti!');
+  // Çiftleşme sesi ve bildirimi
+  farmSound('love');
 
+  showToast(
+    '❤️ @' + partner + ' ile @' +
+    parentName + ' çiftleşti!'
+  );
+
+  // 3 saniye sonra civciv doğar
   setTimeout(() => {
+    farmSound('chick');
+
     const baby = addChicken(babyName, true);
     baby.age = 0;
+
     showToast('🐣 @' + babyName + ' doğdu!');
   }, 3000);
 }
-
 
   // İleride harici bir TikTok köprüsü bu dört fonksiyonu çağırabilir.
   // Gerçek hediye bağlantısı / sunucu / servis bu demo dosyasında bulunmaz.
@@ -961,6 +1031,29 @@ if(d<3) {
 
   connect();
 })();
+</script>
+
+
+<button id="farmSoundButton"
+  style="position:fixed;right:12px;bottom:12px;z-index:9999;
+  padding:12px;border:0;border-radius:14px;
+  background:#264b35;color:white;font-weight:bold;">
+  🔇 Sesleri Aç
+</button>
+<script>
+document.getElementById('farmSoundButton').addEventListener('click', async function () {
+  try {
+    if (!farmAudio) {
+      farmAudio = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    await farmAudio.resume();
+    farmSoundOn = !farmSoundOn;
+    this.textContent = farmSoundOn ? '🔊 Ses Açık' : '🔇 Sesleri Aç';
+    if (farmSoundOn) farmSound('chick');
+  } catch (error) {
+    alert('Ses sistemi başlatılamadı.');
+  }
+});
 </script>
 
 </body>
