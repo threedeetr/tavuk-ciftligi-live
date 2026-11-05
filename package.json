@@ -1,17 +1,18 @@
+
 {
   "name": "tavuk-ciftligi-live-cloud",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "tiktok-live-connector": "2.5.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "piratetok-live-js": "latest"
   }
 }
