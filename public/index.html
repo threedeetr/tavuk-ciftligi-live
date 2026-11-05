@@ -862,8 +862,8 @@ if(d<3) {
     const api = window.FarmLiveDemo;
     if (!api || !event || typeof event !== 'object') return;
     const username = String(event.username || 'izleyici').replace(/^@/, '').slice(0, 40);
-    switch (event.type) {
-      case 'chicken': api.onChickenGift(username); break;
+    switch (event.giftType) {
+     case 'chicken': api.onChickenGift(username); break;
       case 'fox': api.onFoxGift(username); break;
       case 'big': api.onBigGift(username, Number(event.giftValue) || 0); break;
       case 'egg': api.onEggGift(username); break;
