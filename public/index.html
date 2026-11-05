@@ -7,6 +7,55 @@
 <title>Çiftlik Live — Demo</title>
 <style>
 
+/* TikTok LIVE hediye rehberi */
+.gift-guide {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+  z-index: 5;
+  padding: 9px;
+  border-radius: 14px;
+  background: rgba(29, 58, 36, .91);
+  border: 1px solid rgba(255,255,255,.25);
+  box-shadow: 0 5px 18px rgba(0,0,0,.2);
+  color: white;
+  pointer-events: none;
+}
+
+.gift-guide-title {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffe49b;
+  margin-bottom: 7px;
+}
+
+.gift-guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.gift-guide-item {
+  background: rgba(255,255,255,.11);
+  border-radius: 9px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.gift-guide-item b {
+  display: block;
+  color: #ffe49b;
+  font-size: 10px;
+}
+
+.gift-guide-item span {
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+}
+
 /* TikTok LIVE telefon ekranı */
 html, body {
   width: 100% !important;
