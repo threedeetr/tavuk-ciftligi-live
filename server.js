@@ -153,7 +153,7 @@ function handleGift(event) {
       giftName,
       giftValue,
       repeatCount: count,
-      type,
+      giftType: type,
       receivedAt: new Date().toISOString()
     });
   }
