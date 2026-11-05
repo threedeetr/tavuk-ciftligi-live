@@ -1,277 +1,226 @@
+
 import express from 'express';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
+import { TikTokLiveClient, EventType } from 'piratetok-live-js';
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const username = String(process.env.TIKTOK_USERNAME || '').replace(/^@/, '').trim();
-const apiKey = String(process.env.TIKTOOL_API_KEY || '').trim();
+const username = String(
+  process.env.TIKTOK_USERNAME || 'threedee.tr'
+).replace(/^@/, '').trim();
 
-function csv(s) {
-  return new Set(s.split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
-}
+const directory = path.dirname(fileURLToPath(import.meta.url));
 
-const chicken = csv(process.env.CHICKEN_GIFTS || 'Rose');
-const fox = csv(process.env.FOX_GIFTS || 'Fox');
-const egg = csv(process.env.EGG_GIFTS || 'Heart Me');
-const bigMin = Number(process.env.BIG_GIFT_MIN || 1000);
+const giftSet = name => new Set(
+  String(name).toLowerCase().split(',')
+    .map(x => x.trim()).filter(Boolean)
+);
+
+const chickenGifts = giftSet(process.env.CHICKEN_GIFTS || 'Rose');
+const foxGifts = giftSet(process.env.FOX_GIFTS || 'Fox');
+const eggGifts = giftSet(process.env.EGG_GIFTS || 'Heart Me');
+const bigGiftMin = Number(process.env.BIG_GIFT_MIN || 1000);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const dir = path.dirname(fileURLToPath(import.meta.url));
 app.disable('x-powered-by');
-app.use(express.static(path.join(dir, 'public'), { extensions: ['html'] }));
+app.use(express.static(path.join(directory, 'public'), {
+  extensions: ['html']
+}));
 
-let upstream = null;
 let connected = false;
 let lastError = '';
+let client = null;
 let stopping = false;
 
 const server = http.createServer(app);
-const clients = new WebSocketServer({ server, path: '/ws' });
+const browserSockets = new WebSocketServer({
+  server,
+  path: '/ws'
+});
 
-function broadcast(data) {
-  const msg = JSON.stringify(data);
-  for (const client of clients.clients) {
-    if (client.readyState === WebSocket.OPEN) client.send(msg);
+function broadcast(payload) {
+  const json = JSON.stringify(payload);
+  for (const socket of browserSockets.clients) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(json);
+    }
   }
 }
 
 function status(message, isConnected = false) {
   connected = isConnected;
-  broadcast({ type: 'status', connected, message });
   console.log('[LIVE]', message);
+  broadcast({ type: 'status', connected, message });
 }
 
-clients.on('connection', socket => {
+browserSockets.on('connection', socket => {
   socket.on('message', () => {});
   socket.send(JSON.stringify({
     type: 'status',
     connected,
-    message: connected ? 'Tik.Tools LIVE bağlı' : lastError || 'TikTok LIVE bekleniyor'
+    message: connected
+      ? `@${username} LIVE bağlı`
+      : lastError || 'TikTok LIVE bekleniyor'
   }));
 });
 
 app.get('/health', (_req, res) => res.json({
   ok: true,
-  configured: !!(username && apiKey),
+  configured: !!username,
   connected
 }));
 
 app.get('/api/status', (_req, res) => res.json({
-  tiktokUsername: username ? '@' + username : null,
-  configured: !!(username && apiKey),
+  tiktokUsername: `@${username}`,
+  configured: !!username,
   connected,
   lastError
 }));
 
-const combos = new Map();
-const seen = new Map();
+const recentlySeen = new Map();
 
-function handleGift(d) {
+function handleGift(event) {
+  const data = event?.data || event;
+  const gift = data?.gift || {};
+
+  const giftName = String(
+    gift.name || data?.giftName || ''
+  ).trim();
+
   const sender = String(
-    d.user?.uniqueId || d.user?.nickname || d.user_unique_id || 'izleyici'
+    data?.user?.uniqueId ||
+    data?.user?.nickname ||
+    'izleyici'
   ).replace(/^@/, '').slice(0, 40);
 
-  const name = String(d.giftName || '').trim();
-  const key = name.toLowerCase();
-  const unit = Math.max(0, Number(d.diamondCount || 0));
-  const count = Math.max(1, Number(d.repeatCount || 1));
-  const giftId = String(d.giftId || name);
-  const now = Date.now();
+  const unitDiamonds = Math.max(
+    0,
+    Number(gift.diamondCount ?? data?.diamondCount ?? 0)
+  );
 
-  for (const [k, v] of combos) {
-    if (now - v.at > 120000) combos.delete(k);
+  const count = Math.max(1, Number(data?.repeatCount || 1));
+  const giftValue = unitDiamonds * count;
+  const key = giftName.toLowerCase();
+
+  if (
+    (data?.isCombo === true ||
+      Number(gift.giftType ?? data?.giftType) === 1) &&
+    data?.isStreakOver !== true &&
+    data?.repeatEnd !== true
+  ) {
+    return;
   }
 
-  for (const [k, at] of seen) {
-    if (now - at > 120000) seen.delete(k);
-  }
+  const eventId = String(
+    data?.msgId || data?.messageId || data?.id || ''
+  );
 
-  const transaction = String(d.transactionId || d.msgId || '');
-  const exact = transaction
-    ? transaction + ':' + count + ':' + sender + ':' + giftId
+  const dedupKey = eventId
+    ? `${eventId}:${sender}:${giftName}:${count}`
     : '';
 
-  if (exact && seen.has(exact)) return;
-  if (exact) seen.set(exact, now);
+  const now = Date.now();
 
-  let quantity = count;
-
-  if (Number(d.giftType) === 1 || d.groupId) {
-    const group = String(d.groupId || sender + ':' + giftId);
-    const id = sender + ':' + giftId + ':' + group;
-    const prev = combos.get(id)?.count || 0;
-
-    quantity = Math.max(0, count - prev);
-    combos.set(id, {
-      count: Math.max(count, prev),
-      at: now
-    });
-
-    if (!quantity) return;
+  for (const [id, time] of recentlySeen) {
+    if (now - time > 120000) recentlySeen.delete(id);
   }
 
-  const value = unit * quantity;
-  const type = fox.has(key)
+  if (dedupKey && recentlySeen.has(dedupKey)) return;
+  if (dedupKey) recentlySeen.set(dedupKey, now);
+
+  const type = foxGifts.has(key)
     ? 'fox'
-    : chicken.has(key)
+    : chickenGifts.has(key)
       ? 'chicken'
-      : egg.has(key)
+      : eggGifts.has(key)
         ? 'egg'
-        : value >= bigMin
+        : giftValue >= bigGiftMin
           ? 'big'
           : null;
 
   console.log(
-    `[GIFT] @${sender} ${name} x${quantity} (${value} elmas) -> ${type || 'eşleşme yok'}`
+    `[GIFT] @${sender}: ${giftName} x${count} (${giftValue} elmas) => ${type || 'eşleşme yok'}`
   );
 
   if (type) {
     broadcast({
       type: 'gift',
+      eventId: dedupKey || `${now}-${sender}-${key}`,
       username: sender,
-      giftName: name,
-      giftValue: value,
-      repeatCount: quantity,
+      giftName,
+      giftValue,
+      repeatCount: count,
       type,
-      eventId: exact || `${now}-${sender}-${giftId}`,
       receivedAt: new Date().toISOString()
     });
   }
 }
 
-async function run() {
-  if (!username || !apiKey) {
-    lastError = !apiKey
-      ? 'TIKTOOL_API_KEY eksik'
-      : 'TIKTOK_USERNAME eksik';
-
-    status(lastError);
-    return;
-  }
-
-  let delay = 3000;
+async function connectForever() {
+  let wait = 5000;
 
   while (!stopping) {
-    let socket;
-
     try {
-      status(`@${username} Tik.Tools bağlantısı deneniyor`);
+      status(`@${username} yayını aranıyor...`);
 
-      const url = new URL('wss://api.tik.tools');
-      url.searchParams.set('uniqueId', username);
-      url.searchParams.set('apiKey', apiKey);
+      client = new TikTokLiveClient(username).maxRetries(10);
 
-      socket = new WebSocket(url.toString(), {
-        handshakeTimeout: 20000
+      client.on(EventType.gift, handleGift);
+
+      client.on('reconnecting', () => {
+        console.log('[LIVE] TikTok yeniden bağlanıyor');
       });
 
-      upstream = socket;
-
-      await new Promise((resolve, reject) => {
-        let settled = false;
-
-        const finish = err => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          err ? reject(err) : resolve();
-        };
-
-        const timeout = setTimeout(() => {
-          socket.terminate();
-          finish(new Error('Tik.Tools bağlantı zaman aşımı'));
-        }, 30000);
-
-        socket.on('open', () => {
-          lastError = '';
-          delay = 3000;
-          status(`@${username} Tik.Tools soketi açıldı`, true);
-        });
-
-        socket.on('message', raw => {
-          let msg;
-
-          try {
-            msg = JSON.parse(raw.toString());
-          } catch {
-            return;
-          }
-
-          if (msg.event === 'roomInfo') {
-            status(`@${username} TikTok LIVE bağlı`, true);
-          } else if (msg.event === 'gift') {
-            handleGift(msg.data || {});
-          } else if (
-            msg.event === 'error' ||
-            msg.event === 'connectionError'
-          ) {
-            lastError = String(
-              msg.data?.message ||
-              msg.message ||
-              JSON.stringify(msg.data || msg)
-            ).slice(0, 250);
-
-            console.error('[LIVE] Tik.Tools:', lastError);
-            status(lastError, false);
-          } else if (
-            msg.event === 'streamEnd' ||
-            msg.event === 'liveEnd'
-          ) {
-            status('Canlı yayın sona erdi', false);
-          }
-        });
-
-        socket.on('error', e => {
-          lastError = e.message;
-          console.error('[LIVE] WS:', lastError);
-          finish(e);
-        });
-
-        socket.on('close', (code, reason) => {
-          const why = reason?.toString().slice(0, 180) ||
-            'neden belirtilmedi';
-
-          lastError = `Bağlantı kapandı (${code}): ${why}`;
-          status(lastError, false);
-          finish();
-        });
+      client.on('disconnected', () => {
+        status('TikTok bağlantısı kesildi');
       });
-    } catch (e) {
-      lastError = String(e.message || e).slice(0, 250);
-      status('Bağlantı kurulamadı: ' + lastError, false);
-    } finally {
-      connected = false;
 
-      if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.terminate();
+      client.on('liveEnded', () => {
+        status('Canlı yayın sona erdi');
+      });
+
+      await client.connect();
+
+      lastError = '';
+      status(`@${username} LIVE bağlı`, true);
+      wait = 5000;
+
+      while (!stopping && connected) {
+        await sleep(2000);
       }
+    } catch (error) {
+      lastError = String(error?.message || error);
+      console.error('[LIVE] Bağlantı hatası:', lastError);
+      status(`TikTok LIVE bekleniyor: ${lastError}`);
+    } finally {
+      try {
+        await client?.disconnect();
+      } catch {}
 
-      if (upstream === socket) upstream = null;
+      client = null;
+      connected = false;
     }
 
     if (!stopping) {
-      status(
-        `Yeniden bağlanma ${Math.round(delay / 1000)} sn sonra`,
-        false
-      );
-
-      await sleep(delay);
-      delay = Math.min(Math.round(delay * 1.7), 60000);
+      await sleep(wait);
+      wait = Math.min(Math.round(wait * 1.6), 60000);
     }
   }
 }
 
 server.listen(port, () => {
-  console.log(`Tavuk Çiftliği ${port} portunda hazır`);
-  run();
+  console.log(`Tavuk Çiftliği sunucusu ${port} portunda hazır`);
+  connectForever();
 });
 
 function shutdown() {
   stopping = true;
-  upstream?.terminate();
+  try {
+    client?.disconnect();
+  } catch {}
   server.close();
 }
 
