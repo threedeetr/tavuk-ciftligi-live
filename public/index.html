@@ -683,8 +683,11 @@ ctx.scale(state.width/420,state.height/600);
     drawHay(58,510,.88);
     drawHay(356,514,.82);
     drawPenGround();
-    drawFence(true);
+    drawFence(true);   
+    ctx.save();
+    ctx.translate(0, -48);
     drawCoop(t);
+    ctx.restore();
     drawFeeder(153,361);
     drawWater(286,358);
     // Yumurtalar ve tavuklar derinlik sırasına göre çizilir.
