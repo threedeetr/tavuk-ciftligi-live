@@ -341,6 +341,59 @@ function farmSound(kind) {
   }
 }
 
+let farmMusicTimer = null;
+
+function farmMusicNote(freq, start, duration) {
+  if (!farmAudio || !farmSoundOn) return;
+
+  const osc = farmAudio.createOscillator();
+  const gain = farmAudio.createGain();
+  const t = farmAudio.currentTime + start;
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, t);
+
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.linearRampToValueAtTime(0.018, t + 0.05);
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001, t + duration
+  );
+
+  osc.connect(gain);
+  gain.connect(farmAudio.destination);
+
+  osc.start(t);
+  osc.stop(t + duration + 0.02);
+}
+
+function playFarmMelody() {
+  if (!farmSoundOn || !farmAudio) return;
+
+  const notes = [
+    392, 440, 523, 440,
+    392, 330, 349, 392,
+    440, 523, 587, 523,
+    440, 392, 349, 330
+  ];
+
+  notes.forEach((freq, i) => {
+    farmMusicNote(freq, i * 0.32, 0.28);
+  });
+}
+
+function startFarmMusic() {
+  stopFarmMusic();
+  playFarmMelody();
+  farmMusicTimer = setInterval(playFarmMelody, 5120);
+}
+
+function stopFarmMusic() {
+  if (farmMusicTimer !== null) {
+    clearInterval(farmMusicTimer);
+    farmMusicTimer = null;
+  }
+}
+
   function showToast(message) {
     ui.toast.textContent = message;
     ui.toast.classList.add('show');
@@ -1049,7 +1102,14 @@ document.getElementById('farmSoundButton').addEventListener('click', async funct
     await farmAudio.resume();
     farmSoundOn = !farmSoundOn;
     this.textContent = farmSoundOn ? '🔊 Ses Açık' : '🔇 Sesleri Aç';
-    if (farmSoundOn) farmSound('chick');
+    
+if (farmSoundOn) {
+  farmSound('chick');
+  startFarmMusic();
+} else {
+  stopFarmMusic();
+  farmAudio.suspend();
+}
   } catch (error) {
     alert('Ses sistemi başlatılamadı.');
   }
