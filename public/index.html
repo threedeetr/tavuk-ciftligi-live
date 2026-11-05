@@ -768,7 +768,12 @@ body {
     if(f.pause>0) f.pause-=dt;
     else {
       const dx=f.tx-f.x,dy=f.ty-f.y,d=Math.hypot(dx,dy);
-      if(d<3) { f.pause=rand(1,3); f.tx=rand(45,105); f.ty=rand(515,545); }
+      
+if(d<3) {
+  f.pause = rand(1,3);
+  f.tx = rand(65,145);
+  f.ty = rand(240,285);
+}
       else { const s=Math.min(d,18*dt); f.x+=dx/d*s; f.y+=dy/d*s; }
     }
     f.phase+=dt;
