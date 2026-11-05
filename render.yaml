@@ -1,3 +1,4 @@
+
 services:
   - type: web
     name: tavuk-ciftligi-live
@@ -8,7 +9,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: "22.19.0"
       - key: TIKTOK_USERNAME
         sync: false
       - key: CHICKEN_GIFTS
@@ -18,4 +19,4 @@ services:
       - key: EGG_GIFTS
         value: Heart Me
       - key: BIG_GIFT_MIN
-        value: 1000
+        value: "1000"
