@@ -753,13 +753,7 @@ ctx.scale(state.width/420,state.height/600);
         }
       }
       if (chicken.eating>0) chicken.eating-=dt;
-      chicken.nextEgg-=dt;
-      if (chicken.nextEgg<=0) {
-        state.eggs.push({x:clamp(chicken.x+rand(-8,8),105,350),y:clamp(chicken.y+rand(7,13),285,440),rot:rand(-.35,.35),shine:rand(.4,1),owner:chicken.username});
-        if(state.eggs.length>MAX_VISIBLE_EGGS) state.eggs.shift();
-        chicken.nextEgg=rand(36,62);
-        updateHud();
-      }
+      chicken.age = Math.min(30, (chicken.age ?? 30) + dt);
     }
   }
 
