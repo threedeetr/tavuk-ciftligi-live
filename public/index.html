@@ -304,7 +304,7 @@ body {
       username: cleanUsername(username), x: point.x, y: point.y,
       tx: rand(120, 330), ty: rand(294, 420), speed: rand(13, 23),
       angle: rand(-.4, .4), pause: rand(.2, 1.8), bob: rand(0, Math.PI * 2),
-      targetKind: 'wander', nextEgg: rand(22, 42), eating: 0
+      targetKind: 'wander', age: 30, eating: 0
     };
     if (state.chickens.length >= MAX_CHICKENS) {
       // Eski tavukları sessizce sıradan çıkar; oyun hafızası ve çizim yükü sabit kalır.
@@ -375,9 +375,31 @@ body {
     return false;
   }
 
-  function onEggGift(username) {
-    addEgg(username);
+  
+function onEggGift(username, babyUsername) {
+  if (state.chickens.length === 0) {
+    showToast('🐔 Çiftleşme için çiftlikte tavuk olmalı!');
+    return;
   }
+
+  const parent = state.chickens[
+    Math.floor(Math.random() * state.chickens.length)
+  ];
+
+  const partner = cleanUsername(username);
+  const parentName = parent.username;
+  const babyName = cleanUsername(babyUsername || username);
+
+  showToast('❤️ @' + partner + ' ile @' +
+    parentName + ' çiftleşti!');
+
+  setTimeout(() => {
+    const baby = addChicken(babyName, true);
+    baby.age = 0;
+    showToast('🐣 @' + babyName + ' doğdu!');
+  }, 3000);
+}
+
 
   // İleride harici bir TikTok köprüsü bu dört fonksiyonu çağırabilir.
   // Gerçek hediye bağlantısı / sunucu / servis bu demo dosyasında bulunmaz.
@@ -589,6 +611,8 @@ body {
     const bob = Math.sin(t*5 + chicken.bob) * 1.2;
     const peck = chicken.eating > 0 ? Math.sin(t*15 + chicken.bob) * 1.8 : 0;
     ctx.translate(chicken.x, chicken.y + bob);
+const growth = Math.min(1, 0.45 + (chicken.age ?? 30) / 30 * 0.55);
+ctx.scale(growth, growth);
     ctx.rotate(chicken.angle * .25);
     // Gölge
     ctx.fillStyle='rgba(55,82,42,.18)'; ctx.beginPath(); ctx.ellipse(2,9,14,5,0,0,Math.PI*2); ctx.fill();
@@ -869,7 +893,7 @@ if(d<3) {
      case 'chicken': api.onChickenGift(username); break;
       case 'fox': api.onFoxGift(username); break;
       case 'big': api.onBigGift(username, Number(event.giftValue) || 0); break;
-      case 'egg': api.onEggGift(username); break;
+      case 'egg': api.onEggGift(username, event.babyUsername); break;
     }
   }
 
