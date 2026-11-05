@@ -282,7 +282,6 @@ body {
   };
   const displayName = (name) => '@' + cleanUsername(name);
 
-
 let farmAudio = null;
 let farmSoundOn = false;
 
@@ -393,6 +392,35 @@ function stopFarmMusic() {
     farmMusicTimer = null;
   }
 }
+
+
+window.FarmAudio = {
+  async toggle() {
+    if (!farmAudio) {
+      const AudioClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioClass) {
+        throw new Error('Tarayıcı ses sistemini desteklemiyor.');
+      }
+
+      farmAudio = new AudioClass();
+    }
+
+    if (farmSoundOn) {
+      farmSoundOn = false;
+      stopFarmMusic();
+      await farmAudio.suspend();
+    } else {
+      await farmAudio.resume();
+      farmSoundOn = true;
+      farmSound('chick');
+      startFarmMusic();
+    }
+
+    return farmSoundOn;
+  }
+};
 
   function showToast(message) {
     ui.toast.textContent = message;
@@ -1093,27 +1121,23 @@ if(d<3) {
   background:#264b35;color:white;font-weight:bold;">
   🔇 Sesleri Aç
 </button>
+
+
 <script>
-document.getElementById('farmSoundButton').addEventListener('click', async function () {
-  try {
-    if (!farmAudio) {
-      farmAudio = new (window.AudioContext || window.webkitAudioContext)();
+document.getElementById('farmSoundButton')
+  .addEventListener('click', async function () {
+    try {
+      const enabled = await window.FarmAudio.toggle();
+
+      this.textContent = enabled
+        ? '🔊 Ses Açık'
+        : '🔇 Sesleri Aç';
+
+    } catch (error) {
+      console.error('Ses hatası:', error);
+      alert('Ses hatası: ' + error.message);
     }
-    await farmAudio.resume();
-    farmSoundOn = !farmSoundOn;
-    this.textContent = farmSoundOn ? '🔊 Ses Açık' : '🔇 Sesleri Aç';
-    
-if (farmSoundOn) {
-  farmSound('chick');
-  startFarmMusic();
-} else {
-  stopFarmMusic();
-  farmAudio.suspend();
-}
-  } catch (error) {
-    alert('Ses sistemi başlatılamadı.');
-  }
-});
+  });
 </script>
 
 </body>
