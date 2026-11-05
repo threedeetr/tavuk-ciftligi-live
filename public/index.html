@@ -629,7 +629,7 @@ body {
     // Şapka
     ctx.fillStyle='#d5a44f'; ctx.beginPath(); ctx.ellipse(0,-21,11,4,0,0,Math.PI*2); ctx.fill(); ctx.fillRect(-6,-27,12,7);
     // isim tabelası
-    const name=state.owner ? displayName(state.owner) : 'ÇİFTLİKÇİ';
+    const name=state.owner ? displayName(state.owner) : 'ÇİFTLİK SAHİBİ';
     ctx.font='800 8px system-ui'; const w=Math.min(94,ctx.measureText(name).width+13);
     roundedRect(-w/2,-43,w,13,6,'rgba(49,70,48,.88)','rgba(255,255,255,.35)');
     ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(name,0,-36.5, w-8);
