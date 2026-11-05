@@ -196,7 +196,7 @@ body {
     <div class="hud">
       <div class="stat-group">
         <div class="stat"><span class="emoji">🐔</span><span id="chickenCount">3</span></div>
-        <div class="stat"><span class="emoji">🥚</span><span id="eggCount">1</span></div>
+        <div class="stat"><span class="emoji">🐣</span><span id="eggCount">0</span></div>
       </div>
       <div class="owner-pill"><strong>ÇİFTLİK SAHİBİ</strong><span id="ownerName">Henüz lider yok</span></div>
     </div>
@@ -429,11 +429,19 @@ window.FarmAudio = {
     state.toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 3400);
   }
 
-  function updateHud() {
-    ui.chickenCount.textContent = String(state.chickens.length);
-    ui.eggCount.textContent = String(state.eggs.length);
-    ui.ownerName.textContent = state.owner ? displayName(state.owner) : 'Henüz lider yok';
-  }
+function updateHud() {
+  ui.chickenCount.textContent = String(state.chickens.length);
+
+  const chickCount = state.chickens.filter(
+    chicken => (chicken.age ?? 30) < 30
+  ).length;
+
+  ui.eggCount.textContent = String(chickCount);
+
+  ui.ownerName.textContent = state.owner
+    ? displayName(state.owner)
+    : 'Henüz lider yok';
+}
 
   function randomChickenPoint() {
     return { x: rand(126, 324), y: rand(300, 414) };
@@ -907,6 +915,9 @@ ctx.scale(state.width/420,state.height/600);
       }
       if (chicken.eating>0) chicken.eating-=dt;
       chicken.age = Math.min(30, (chicken.age ?? 30) + dt);
+if (chicken.age < 30 || chicken.age - dt < 30) {
+  updateHud();
+}
     }
   }
 
