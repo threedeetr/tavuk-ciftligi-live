@@ -82,6 +82,31 @@ app.get('/api/status', (_req, res) => res.json({
 
 const recentlySeen = new Map();
 
+const recentViewers = new Map();
+
+function rememberViewer(username) {
+  const name = String(username || '').replace(/^@/, '').slice(0, 40);
+  if (!name || name === 'izleyici') return;
+
+  recentViewers.delete(name);
+  recentViewers.set(name, Date.now());
+
+  while (recentViewers.size > 200) {
+    recentViewers.delete(recentViewers.keys().next().value);
+  }
+}
+
+function randomViewer(fallback) {
+  const now = Date.now();
+  const viewers = [...recentViewers]
+    .filter(([name, time]) => now - time < 30 * 60 * 1000)
+    .map(([name]) => name);
+
+  return viewers.length
+    ? viewers[Math.floor(Math.random() * viewers.length)]
+    : fallback;
+}
+
 function handleGift(event) {
   const data = event?.data || event;
   const gift = data?.gift || {};
