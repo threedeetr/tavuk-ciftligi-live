@@ -58,6 +58,7 @@ function status(message, isConnected = false) {
 
 browserSockets.on('connection', socket => {
   socket.on('message', () => {});
+socket.send(JSON.stringify(goalSnapshot()));
   socket.send(JSON.stringify({
     type: 'status',
     connected,
@@ -79,6 +80,78 @@ app.get('/api/status', (_req, res) => res.json({
   connected,
   lastError
 }));
+
+
+const farmMissions = [
+  '🏚️ Çiftliğin borcunu öde!',
+  '🏠 Yeni kümes inşa et!',
+  '🌽 Kışlık yem deposunu doldur!',
+  '🚜 Çiftliğe traktör al!',
+  '🛡️ Tilkilere karşı çitleri güçlendir!',
+  '🏡 Çiftliği genişlet!',
+  '🐔 Tavuklara yeni yuva yap!'
+];
+
+const goal = {
+  level: 1,
+  target: 1000,
+  progress: 0,
+  title: farmMissions[0],
+  completed: false,
+  nextAt: 0
+};
+
+function goalSnapshot() {
+  return { type: 'goal', ...goal };
+}
+
+function publishGoal() {
+  broadcast(goalSnapshot());
+}
+
+function nextFarmGoal() {
+  goal.level++;
+  goal.target = Math.min(goal.target * 2, 1000000000);
+  goal.progress = 0;
+  goal.completed = false;
+  goal.nextAt = 0;
+
+  const options = farmMissions.filter(
+    name => name !== goal.title
+  );
+
+  goal.title = options[
+    Math.floor(Math.random() * options.length)
+  ];
+
+  publishGoal();
+}
+
+function addGoalPoints(points) {
+  if (goal.completed) return;
+
+  const amount = Math.max(0, Math.floor(Number(points) || 0));
+  if (!amount) return;
+
+  goal.progress = Math.min(
+    goal.target,
+    goal.progress + amount
+  );
+
+  if (goal.progress >= goal.target) {
+    goal.completed = true;
+    goal.nextAt = Date.now() + 5000;
+  }
+
+  publishGoal();
+}
+
+// Tamamlanan hedefi sunucu otomatik ilerletir.
+setInterval(() => {
+  if (goal.completed && Date.now() >= goal.nextAt) {
+    nextFarmGoal();
+  }
+}, 1000);
 
 const recentlySeen = new Map();
 
@@ -157,7 +230,7 @@ function handleGift(event) {
 
   if (dedupKey && recentlySeen.has(dedupKey)) return;
   if (dedupKey) recentlySeen.set(dedupKey, now);
-
+addGoalPoints(giftValue);
   const type = foxGifts.has(key)
     ? 'fox'
     : chickenGifts.has(key)
