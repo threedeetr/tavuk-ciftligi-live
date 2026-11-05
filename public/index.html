@@ -198,6 +198,52 @@ body {
         <div class="stat"><span class="emoji">🐔</span><span id="chickenCount">3</span></div>
         <div class="stat"><span class="emoji">🐣</span><span id="eggCount">0</span></div>
       </div>
+
+<div id="farmGoalPanel" style="
+  position:absolute;
+  top:62px;
+  left:8px;
+  width:215px;
+  max-width:55%;
+  padding:9px;
+  background:rgba(31,66,38,.92);
+  border:1px solid #ffffff55;
+  border-radius:12px;
+  color:white;
+  z-index:6;
+  box-shadow:0 3px 12px #0003;
+">
+  <div id="farmGoalTitle" style="
+    font-size:11px;
+    font-weight:900;
+    margin-bottom:6px;
+  ">
+    🏚️ Çiftliğin borcunu öde!
+  </div>
+
+  <div style="
+    height:12px;
+    background:#ffffff44;
+    border-radius:20px;
+    overflow:hidden;
+  ">
+    <div id="farmGoalFill" style="
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#82d75b,#ffe46b);
+      border-radius:20px;
+      transition:width .6s ease;
+    "></div>
+  </div>
+
+  <div id="farmGoalInfo" style="
+    font-size:10px;
+    font-weight:700;
+    margin-top:5px;
+  ">
+    1.000 jeton kaldı
+  </div>
+</div>
       <div class="owner-pill"><strong>ÇİFTLİK SAHİBİ</strong><span id="ownerName">Henüz lider yok</span></div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1043,6 +1089,39 @@ if(d<3) {
     text.textContent = message;
   }
 
+
+function updateFarmGoal(data) {
+  const title = document.getElementById('farmGoalTitle');
+  const fill = document.getElementById('farmGoalFill');
+  const info = document.getElementById('farmGoalInfo');
+
+  if (!title || !fill || !info) return;
+
+  const target = Math.max(1, Number(data.target) || 1000);
+  const progress = Math.max(0, Number(data.progress) || 0);
+  const percent = Math.min(100, progress / target * 100);
+
+  const format = number =>
+    Math.floor(number).toLocaleString('tr-TR');
+
+  fill.style.width = percent + '%';
+
+  if (data.completed) {
+    title.textContent = '🎉 HEDEF TAMAMLANDI!';
+    info.textContent = '🏆 Yeni hedef hazırlanıyor...';
+    fill.style.background = '#ffd54a';
+  } else {
+    title.textContent = data.title;
+    info.textContent =
+      'Seviye ' + data.level +
+      ' · ' + format(target - progress) +
+      ' jeton kaldı';
+
+    fill.style.background =
+      'linear-gradient(90deg,#82d75b,#ffe46b)';
+  }
+}
+
   function dispatchGift(event) {
     const api = window.FarmLiveDemo;
     if (!api || !event || typeof event !== 'object') return;
@@ -1070,6 +1149,10 @@ if(d<3) {
     socket.addEventListener('message', (message) => {
       try {
         const data = JSON.parse(message.data);
+if (data.type === 'goal') {
+  updateFarmGoal(data);
+  return;
+}
         if (data.type === 'status') {
           setStatus(data.connected ? 'connected' : 'waiting',
             data.connected ? 'TikTok LIVE bağlı' : 'TikTok LIVE bekleniyor');
