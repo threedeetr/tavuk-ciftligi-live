@@ -121,6 +121,8 @@ function handleGift(event) {
     'izleyici'
   ).replace(/^@/, '').slice(0, 40);
 
+  rememberViewer(sender);
+
   const unitDiamonds = Math.max(
     0,
     Number(gift.diamondCount ?? data?.diamondCount ?? 0)
@@ -179,6 +181,7 @@ function handleGift(event) {
       giftValue,
       repeatCount: count,
       giftType: type,
+      babyUsername: type === 'egg' ? randomViewer(sender) : null,
       receivedAt: new Date().toISOString()
     });
   }
@@ -194,6 +197,16 @@ async function connectForever() {
       client = new TikTokLiveClient(username).maxRetries(10);
 
       client.on(EventType.gift, handleGift);
+
+
+client.on('chat', event => {
+  const data = event?.data || event;
+  rememberViewer(
+    data?.user?.uniqueId ||
+    data?.uniqueId ||
+    data?.user?.nickname
+  );
+});
 
       client.on('reconnecting', () => {
         console.log('[LIVE] TikTok yeniden bağlanıyor');
